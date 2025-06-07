@@ -1,0 +1,13 @@
+{
+  "name": "done-ish",
+  "version": "1.0.0",
+  "description": "A guilt-tripping to-do list that roasts you into productivity",
+  "scripts": {
+    "generate-icons": "node generate-icons.js"
+  },
+  "dependencies": {
+    "canvas": "^2.11.2"
+  },
+  "author": "",
+  "license": "MIT"
+}

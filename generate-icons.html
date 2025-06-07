@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Icons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .icon-preview {
+            text-align: center;
+            margin: 10px;
+        }
+        .icon-preview img {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Done(ish) Icon Generator</h1>
+    <p>Click the button below to generate all required icon sizes.</p>
+    <button id="generateBtn">Generate Icons</button>
+    
+    <div id="preview" class="preview">
+        <!-- Preview will be added here -->
+    </div>
+
+    <script>
+        const sizes = [
+            { name: 'icon-192x192.png', size: 192 },
+            { name: 'icon-512x512.png', size: 512 },
+            { name: 'icon-152x152.png', size: 152 },
+            { name: 'icon-167x167.png', size: 167 },
+            { name: 'icon-180x180.png', size: 180 },
+            { name: 'icon-120x120.png', size: 120 },
+            { name: 'icon-87x87.png', size: 87 },
+            { name: 'apple-touch-icon.png', size: 180 },
+            { name: 'badge.png', size: 96 }
+        ];
+
+        function generateIcon(size, name) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Background - Yellow from the provided image
+            ctx.fillStyle = '#FFD700'; // Gold/Yellow color
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw document shape - white with rounded corners
+            const padding = size * 0.1;
+            const docWidth = size * 0.7; // Wider document
+            const docHeight = docWidth * 0.8; // Slightly taller than wide
+            const docX = (size - docWidth) / 2;
+            const docY = (size - docHeight) / 2 - (size * 0.05); // Slightly higher
+            
+            // Draw document with rounded corners
+            roundRect(ctx, docX, docY, docWidth, docHeight, 15, true, true, '#FFFFFF');
+            
+            // Draw lines on the document
+            const lineCount = 3;
+            const lineHeight = docHeight * 0.08;
+            const lineSpacing = (docHeight * 0.7) / (lineCount + 1);
+            const startY = docY + (docHeight * 0.2);
+            
+            // Draw checkboxes and lines
+            for (let i = 0; i < lineCount; i++) {
+                const y = startY + (i * lineSpacing);
+                
+                // Draw checkbox (square with rounded corners)
+                const checkboxSize = lineHeight * 0.8;
+                const checkboxX = docX + (docWidth * 0.1);
+                const checkboxY = y - (checkboxSize / 2);
+                
+                // Checkbox background (white)
+                roundRect(ctx, checkboxX, checkboxY, checkboxSize, checkboxSize, 3, true, true, '#FFFFFF');
+                
+                // Checkbox border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = Math.max(1, size * 0.01);
+                roundRect(ctx, checkboxX, checkboxY, checkboxSize, checkboxSize, 3, false, true, null);
+                
+                // Draw checkmark in first checkbox
+                if (i === 0) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#00AA00';
+                    ctx.lineWidth = Math.max(2, size * 0.015);
+                    ctx.moveTo(checkboxX + (checkboxSize * 0.2), y);
+                    ctx.lineTo(checkboxX + (checkboxSize * 0.4), y + (checkboxSize * 0.3));
+                    ctx.lineTo(checkboxX + (checkboxSize * 0.8), y - (checkboxSize * 0.2));
+                    ctx.stroke();
+                }
+                
+                // Draw line after checkbox
+                ctx.beginPath();
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = Math.max(1, size * 0.006);
+                const lineStartX = checkboxX + checkboxSize + (docWidth * 0.05);
+                ctx.moveTo(lineStartX, y);
+                ctx.lineTo(docX + (docWidth * 0.8), y);
+                ctx.stroke();
+            }
+            
+            // Draw face (from the provided image) - simple smiley
+            if (size >= 120) {
+                const faceX = docX + (docWidth * 0.8);
+                const faceY = docY + (docHeight * 0.3);
+                const faceSize = docWidth * 0.2;
+                
+                // Face circle
+                ctx.beginPath();
+                ctx.arc(faceX, faceY, faceSize * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fill();
+                
+                // Face border
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = Math.max(1, size * 0.01);
+                ctx.stroke();
+                
+                // Eyes (simple dots)
+                ctx.beginPath();
+                ctx.arc(faceX - (faceSize * 0.2), faceY - (faceSize * 0.1), faceSize * 0.1, 0, Math.PI * 2);
+                ctx.arc(faceX + (faceSize * 0.2), faceY - (faceSize * 0.1), faceSize * 0.1, 0, Math.PI * 2);
+                ctx.fillStyle = '#000000';
+                ctx.fill();
+                
+                // Smile (simple curve)
+                ctx.beginPath();
+                ctx.arc(faceX, faceY, faceSize * 0.3, 0.2 * Math.PI, 0.8 * Math.PI);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = Math.max(1, size * 0.01);
+                ctx.stroke();
+            }
+            
+            // Add "DONE(ISH)" text at the bottom
+            if (size >= 100) {
+                ctx.fillStyle = '#000000';
+                const fontSize = size * 0.1;
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('DONE(ISH)', size / 2, size - (padding * 0.8));
+            }
+            
+            // Add preview
+            const preview = document.createElement('div');
+            preview.className = 'icon-preview';
+            preview.innerHTML = `<div>${name} (${size}x${size})</div>`;
+            
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/png');
+            img.width = 100;
+            img.height = 100;
+            img.style.border = '1px solid #ddd';
+            
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = name;
+            link.appendChild(img);
+            
+            preview.appendChild(link);
+            document.getElementById('preview').appendChild(preview);
+            
+            // Return the data URL
+            return canvas.toDataURL('image/png');
+        }
+        
+        // Helper function to draw rounded rectangles with optional fill color
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke, fillColor) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fill) {
+                if (fillColor) {
+                    const oldFill = ctx.fillStyle;
+                    ctx.fillStyle = fillColor;
+                    ctx.fill();
+                    ctx.fillStyle = oldFill;
+                } else {
+                    ctx.fill();
+                }
+            }
+            if (stroke) {
+                ctx.stroke();
+            }
+        }
+        
+        // Generate all icons
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '<h3>Click on each icon to download it</h3>';
+            
+            sizes.forEach(({ name, size }) => {
+                generateIcon(size, name);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Done(ish)">
+    <meta name="theme-color" content="#ff6b6b">
+    
+    <title>Done(ish) - The Guilt Trip To-Do App</title>
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icon-167x167.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Styles and Icons -->
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Theme Color for different platforms -->
+    <meta name="theme-color" content="#ff6b6b">
+    <meta name="msapplication-navbutton-color" content="#ff6b6b">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#ff6b6b">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Done(ish)</h1>
+            <p class="tagline">Because you'll probably do it later anyway</p>
+        </header>
+
+        <div class="add-task">
+            <input type="text" id="taskInput" placeholder="What do you need to do (but probably won't)?" autofocus>
+            <select id="prioritySelect">
+                <option value="low">Low Priority (meh)</option>
+                <option value="medium" selected>Medium Priority (I guess)</option>
+                <option value="urgent">Urgent (do it now)</option>
+            </select>
+            <input type="datetime-local" id="reminderTime">
+            <button id="addTaskBtn" class="btn">
+                <span class="material-icons">add</span> Add Task
+            </button>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="urgent">Urgent</button>
+            <button class="filter-btn" data-filter="medium">Medium</button>
+            <button class="filter-btn" data-filter="low">Low</button>
+            <button class="filter-btn" data-filter="completed">Completed</button>
+        </div>
+
+        <div class="task-lists">
+            <div class="task-column low-tasks">
+                <h2>Low <span class="material-icons">arrow_downward</span></h2>
+                <ul id="lowTasks" class="task-list" data-priority="low"></ul>
+            </div>
+            <div class="task-column medium-tasks">
+                <h2>Medium <span class="material-icons">remove</span></h2>
+                <ul id="mediumTasks" class="task-list" data-priority="medium"></ul>
+            </div>
+            <div class="task-column urgent-tasks">
+                <h2>Urgent <span class="material-icons">priority_high</span></h2>
+                <ul id="urgentTasks" class="task-list" data-priority="urgent"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js" type="module"></script>
+</body>
+</html>
