@@ -1,9 +1,20 @@
-const CACHE_NAME = 'doneish-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
+const CACHE_NAME = 'done-ish-v2';
+const urlsToCache = [
+  '/Done-ish-/',
+  '/Done-ish-/index.html',
+  '/Done-ish-/styles.css',
+  '/Done-ish-/app.js',
+  '/Done-ish-/manifest.json',
+  '/Done-ish-/service-worker.js',
+  '/Done-ish-/icon-192x192.png',
+  '/Done-ish-/icon-512x512.png',
+  '/Done-ish-/icon-152x152.png',
+  '/Done-ish-/icon-167x167.png',
+  '/Done-ish-/icon-180x180.png',
+  '/Done-ish-/icon-120x120.png',
+  '/Done-ish-/icon-87x87.png',
+  '/Done-ish-/apple-touch-icon.png',
+  '/Done-ish-/badge.png',
   'https://fonts.googleapis.com/icon?family=Material+Icons',
   // Add other assets you want to cache
 ];

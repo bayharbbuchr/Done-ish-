@@ -123,13 +123,25 @@ function setupEventListeners() {
     // Register service worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    console.log('ServiceWorker registration successful');
-                })
-                .catch(err => {
-                    console.error('ServiceWorker registration failed: ', err);
-                });
+            navigator.serviceWorker.register('/Done-ish-/service-worker.js', { 
+                scope: '/Done-ish-/' 
+            })
+            .then(registration => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                // Check if there's a new service worker waiting
+                if (registration.waiting) {
+                    console.log('New service worker found, consider updating');
+                    // You could add UI to prompt user to update
+                }
+            })
+            .catch(error => {
+                console.error('ServiceWorker registration failed: ', error);
+            });
+            
+            // Check for updates to the service worker
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
         });
     }
 }
