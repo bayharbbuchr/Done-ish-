@@ -1,9 +1,10 @@
-const CACHE_NAME = 'done-ish-v4';
+const CACHE_NAME = 'done-ish-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './notification-worker.js',
   './manifest.json',
   './service-worker.js',
   './icon-192x192.png',
@@ -136,9 +137,63 @@ self.addEventListener('notificationclick', (event) => {
   }
 });
 
-// Background sync for failed requests
+// Background sync for failed requests and notifications
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-tasks') {
     // Handle background sync for tasks if needed
+  } else if (event.tag === 'check-notifications') {
+    event.waitUntil(checkScheduledNotifications());
   }
 });
+
+// Check for scheduled notifications in the background
+async function checkScheduledNotifications() {
+  try {
+    // Get scheduled notifications from storage
+    const stored = await caches.open('done-ish-data').then(cache => 
+      cache.match('scheduled-notifications')
+    );
+    
+    if (!stored) return;
+    
+    const scheduledData = await stored.json();
+    const now = new Date();
+    
+    scheduledData.forEach(async (notification) => {
+      const reminderTime = new Date(notification.reminderTime);
+      if (reminderTime <= now && notification.scheduled) {
+        await self.registration.showNotification('Hey, you!', {
+          body: `Time to ${notification.taskTitle}!`,
+          icon: './icon-192x192.png',
+          badge: './badge.png',
+          data: { taskId: notification.id },
+          requireInteraction: true,
+          vibrate: [200, 100, 200, 100, 200, 100, 200],
+          tag: `task-${notification.id}`,
+          actions: [
+            {
+              action: 'complete',
+              title: 'Mark Complete',
+              icon: './icon-120x120.png'
+            },
+            {
+              action: 'dismiss',
+              title: 'Dismiss', 
+              icon: './icon-87x87.png'
+            }
+          ]
+        });
+        
+        // Mark as sent
+        notification.scheduled = false;
+      }
+    });
+    
+    // Save updated data back
+    const cache = await caches.open('done-ish-data');
+    await cache.put('scheduled-notifications', new Response(JSON.stringify(scheduledData)));
+    
+  } catch (error) {
+    console.error('Error checking scheduled notifications:', error);
+  }
+}

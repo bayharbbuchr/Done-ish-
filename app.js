@@ -171,7 +171,14 @@ function addTask() {
     tasks.push(task);
     saveTasks();
     renderTasks();
-    scheduleNotification(task);
+    
+    // Use the new notification worker for background notifications
+    if (window.notificationWorker) {
+        window.notificationWorker.schedule(task);
+    } else {
+        // Fallback to original method
+        scheduleNotification(task);
+    }
     
     // Reset form
     taskInput.value = '';
@@ -295,7 +302,11 @@ function toggleTaskComplete(taskId) {
         
         // Cancel any pending notification
         if (task.reminderTime && !task.notificationSent) {
-            cancelScheduledNotification(task.id);
+            if (window.notificationWorker) {
+                window.notificationWorker.cancel(task.id);
+            } else {
+                cancelScheduledNotification(task.id);
+            }
             task.notificationSent = true;
         }
     } else if (!task.completed && wasCompleted) {
@@ -304,7 +315,11 @@ function toggleTaskComplete(taskId) {
         
         // Reschedule notification if there's a reminder time
         if (task.reminderTime) {
-            scheduleNotification(task);
+            if (window.notificationWorker) {
+                window.notificationWorker.schedule(task);
+            } else {
+                scheduleNotification(task);
+            }
         }
     }
     
@@ -321,7 +336,11 @@ function deleteTask(taskId) {
     
     // Cancel any pending notification
     if (task.reminderTime && !task.notificationSent) {
-        cancelScheduledNotification(task.id);
+        if (window.notificationWorker) {
+            window.notificationWorker.cancel(task.id);
+        } else {
+            cancelScheduledNotification(task.id);
+        }
     }
     
     tasks.splice(taskIndex, 1);
@@ -546,6 +565,32 @@ window.testNotification = async function() {
         }
     } catch (error) {
         console.error('Error sending test notification:', error);
+    }
+};
+
+// Test function for background notifications
+window.testBackgroundNotification = async function() {
+    try {
+        // Create a test task with a reminder in 30 seconds
+        const testTask = {
+            id: 'test-' + Date.now(),
+            title: 'Test Background Task',
+            priority: 'urgent',
+            reminderTime: new Date(Date.now() + 30000).toISOString(), // 30 seconds from now
+            completed: false,
+            notificationSent: false
+        };
+        
+        // Add to notification worker
+        if (window.notificationWorker) {
+            window.notificationWorker.schedule(testTask);
+            console.log('Background notification scheduled for 30 seconds from now');
+            showToast('Test background notification scheduled! Close the app and wait 30 seconds.');
+        } else {
+            console.log('Notification worker not available');
+        }
+    } catch (error) {
+        console.error('Error scheduling background notification:', error);
     }
 };
 
