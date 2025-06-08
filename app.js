@@ -626,6 +626,46 @@ window.testImmediateNotification = async function() {
     }
 };
 
+// Complete debugging function
+window.debugNotifications = function() {
+    console.log('=== NOTIFICATION DEBUGGING ===');
+    
+    // Check basic support
+    console.log('1. Notification support:', 'Notification' in window);
+    console.log('2. Service Worker support:', 'serviceWorker' in navigator);
+    console.log('3. Current permission:', Notification.permission);
+    
+    // Check environment
+    console.log('4. User Agent:', navigator.userAgent);
+    console.log('5. Is HTTPS:', location.protocol === 'https:');
+    console.log('6. Is localhost:', location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    
+    // Check tasks
+    console.log('7. Current tasks:', tasks.length);
+    const tasksWithReminders = tasks.filter(t => t.reminderTime && !t.completed);
+    console.log('8. Tasks with reminders:', tasksWithReminders.length);
+    
+    // Check timeouts
+    console.log('9. Active timeouts:', window.notificationTimeouts ? Object.keys(window.notificationTimeouts).length : 0);
+    
+    // Test basic notification immediately
+    if (Notification.permission === 'granted') {
+        try {
+            new Notification('Debug Test', {
+                body: 'If you see this, basic notifications work!'
+            });
+            console.log('✅ Basic notification test sent');
+        } catch (error) {
+            console.log('❌ Basic notification failed:', error);
+        }
+    } else {
+        console.log('⚠️ Permission not granted - cannot test');
+    }
+    
+    console.log('=== END DEBUGGING ===');
+    showToast('Check console for debug results');
+};
+
 // Initialize the app when the DOM is fully loaded
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
