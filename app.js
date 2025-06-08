@@ -172,14 +172,8 @@ function addTask() {
     saveTasks();
     renderTasks();
     
-    // Always use the original method for immediate scheduling
-    // The notification worker will handle background persistence
+    // Schedule notification using the original method
     scheduleNotification(task);
-    
-    // Also add to background notification worker for persistence
-    if (window.notificationWorker) {
-        window.notificationWorker.schedule(task);
-    }
     
     // Reset form
     taskInput.value = '';
@@ -303,11 +297,7 @@ function toggleTaskComplete(taskId) {
         
         // Cancel any pending notification
         if (task.reminderTime && !task.notificationSent) {
-            // Cancel both systems
             cancelScheduledNotification(task.id);
-            if (window.notificationWorker) {
-                window.notificationWorker.cancel(task.id);
-            }
             task.notificationSent = true;
         }
     } else if (!task.completed && wasCompleted) {
@@ -316,11 +306,7 @@ function toggleTaskComplete(taskId) {
         
         // Reschedule notification if there's a reminder time
         if (task.reminderTime) {
-            // Use both systems
             scheduleNotification(task);
-            if (window.notificationWorker) {
-                window.notificationWorker.schedule(task);
-            }
         }
     }
     
@@ -337,11 +323,7 @@ function deleteTask(taskId) {
     
     // Cancel any pending notification
     if (task.reminderTime && !task.notificationSent) {
-        // Cancel both systems
         cancelScheduledNotification(task.id);
-        if (window.notificationWorker) {
-            window.notificationWorker.cancel(task.id);
-        }
     }
     
     tasks.splice(taskIndex, 1);
@@ -501,7 +483,7 @@ async function scheduleNotification(task) {
             console.error('Error showing notification:', error);
         }
         
-    }, Math.min(delay, 10000)); // Cap at 10 seconds for demo purposes
+    }, delay); // Use actual delay time
     
     // Store timeout ID for potential cancellation
     if (!window.notificationTimeouts) {
@@ -534,10 +516,6 @@ function scheduleNotifications() {
         if (task.reminderTime && !task.completed && !task.notificationSent) {
             console.log('Scheduling notification for:', task.title);
             scheduleNotification(task);
-            // Also add to background worker
-            if (window.notificationWorker) {
-                window.notificationWorker.schedule(task);
-            }
         }
     });
 }
@@ -620,6 +598,31 @@ window.testQuickNotification = async function() {
         showToast('Quick test notification in 5 seconds!');
     } catch (error) {
         console.error('Error scheduling quick notification:', error);
+    }
+};
+
+// Super simple test - immediate notification
+window.testImmediateNotification = async function() {
+    try {
+        if (Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.log('Permission denied');
+                showToast('Permission denied');
+                return;
+            }
+        }
+        
+        // Direct notification without service worker
+        new Notification('Simple Test', {
+            body: 'This is a direct notification test',
+            icon: './icon-192x192.png'
+        });
+        console.log('Direct notification sent');
+        showToast('Direct notification sent');
+    } catch (error) {
+        console.error('Error with direct notification:', error);
+        showToast('Error: ' + error.message);
     }
 };
 
