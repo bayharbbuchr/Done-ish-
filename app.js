@@ -123,8 +123,8 @@ function setupEventListeners() {
     // Register service worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/Done-ish-/service-worker.js', { 
-                scope: '/Done-ish-/' 
+            navigator.serviceWorker.register('./service-worker.js', { 
+                scope: './' 
             })
             .then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
@@ -142,6 +142,13 @@ function setupEventListeners() {
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 window.location.reload();
             });
+        });
+
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data.type === 'COMPLETE_TASK') {
+                toggleTaskComplete(event.data.taskId);
+            }
         });
     }
 }
@@ -355,6 +362,17 @@ function checkNotificationPermission() {
     if (Notification.permission === 'default') {
         // We'll request permission when the user tries to set a reminder
         console.log('Notification permission not yet granted');
+    } else if (Notification.permission === 'granted') {
+        console.log('Notification permission already granted');
+    } else {
+        console.log('Notification permission denied');
+    }
+    
+    // Add a mobile-specific check
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        console.log('Push notifications are supported');
+    } else {
+        console.log('Push notifications may not be fully supported on this device');
     }
 }
 
@@ -377,18 +395,29 @@ async function scheduleNotification(task) {
     
     // Request permission if not already granted
     if (Notification.permission !== 'granted') {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            console.log('Notification permission denied');
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.log('Notification permission denied');
+                showToast('Enable notifications to receive reminders!');
+                return;
+            }
+        } catch (error) {
+            console.error('Error requesting notification permission:', error);
             return;
         }
     }
     
-    // Register service worker if not already registered
-    if (!navigator.serviceWorker.controller) {
-        const registration = await navigator.serviceWorker.ready;
-        if (!registration) {
-            console.error('Service worker not registered');
+    // Wait for service worker to be ready
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            if (!registration) {
+                console.error('Service worker not ready');
+                return;
+            }
+        } catch (error) {
+            console.error('Service worker error:', error);
             return;
         }
     }
@@ -396,49 +425,80 @@ async function scheduleNotification(task) {
     // Schedule the notification
     const delay = reminderDate.getTime() - now.getTime();
     
-    // For demo purposes, we'll show the notification after a short delay
-    // In a real app, you would use the Push API with a backend service
-    setTimeout(() => {
-        // Only send if task is not completed
-        const currentTask = tasks.find(t => t.id === task.id);
-        if (!currentTask || currentTask.completed || currentTask.notificationSent) {
-            return;
-        }
-        
-        const notificationTitle = `Hey, you!`;
-        const notificationBody = notificationTemplates[task.priority](task.title);
-        
-        // Show notification
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(notificationTitle, {
+    // Store the timeout ID so we can cancel it if needed
+    const timeoutId = setTimeout(async () => {
+        try {
+            // Only send if task is not completed
+            const currentTask = tasks.find(t => t.id === task.id);
+            if (!currentTask || currentTask.completed || currentTask.notificationSent) {
+                return;
+            }
+            
+            const notificationTitle = `Hey, you!`;
+            const notificationBody = notificationTemplates[task.priority](task.title);
+            
+            // Show notification using service worker
+            if ('serviceWorker' in navigator) {
+                console.log('Attempting to show notification:', notificationTitle, notificationBody);
+                const registration = await navigator.serviceWorker.ready;
+                console.log('Service worker ready, showing notification');
+                await registration.showNotification(notificationTitle, {
                     body: notificationBody,
-                    icon: '/icon-192x192.png',
-                    badge: '/badge.png',
+                    icon: './icon-192x192.png',
+                    badge: './badge.png',
                     data: { taskId: task.id },
                     requireInteraction: true,
                     vibrate: [200, 100, 200, 100, 200, 100, 200],
+                    tag: `task-${task.id}`,
+                    renotify: true,
+                    actions: [
+                        {
+                            action: 'complete',
+                            title: 'Mark Complete',
+                            icon: './icon-120x120.png'
+                        },
+                        {
+                            action: 'dismiss',
+                            title: 'Dismiss',
+                            icon: './icon-87x87.png'
+                        }
+                    ]
                 });
-            });
-        } else {
-            // Fallback for browsers that don't support service workers
-            new Notification(notificationTitle, {
-                body: notificationBody,
-                icon: '/icon-192x192.png'
-            });
+            } else {
+                // Fallback for browsers that don't support service workers
+                new Notification(notificationTitle, {
+                    body: notificationBody,
+                    icon: './icon-192x192.png',
+                    tag: `task-${task.id}`
+                });
+            }
+            
+            // Mark notification as sent
+            currentTask.notificationSent = true;
+            saveTasks();
+            
+        } catch (error) {
+            console.error('Error showing notification:', error);
         }
         
-        // Mark notification as sent
-        currentTask.notificationSent = true;
-        saveTasks();
-        
     }, Math.min(delay, 10000)); // Cap at 10 seconds for demo purposes
+    
+    // Store timeout ID for potential cancellation
+    if (!window.notificationTimeouts) {
+        window.notificationTimeouts = {};
+    }
+    window.notificationTimeouts[task.id] = timeoutId;
 }
 
 // Cancel a scheduled notification
 function cancelScheduledNotification(taskId) {
-    // In a real app, you would cancel the notification with the Push API
-    // For this demo, we're just marking it as not sent
+    // Cancel the timeout if it exists
+    if (window.notificationTimeouts && window.notificationTimeouts[taskId]) {
+        clearTimeout(window.notificationTimeouts[taskId]);
+        delete window.notificationTimeouts[taskId];
+    }
+    
+    // Mark task as notification not sent
     const task = tasks.find(t => t.id === taskId);
     if (task) {
         task.notificationSent = false;
@@ -454,6 +514,40 @@ function scheduleNotifications() {
         }
     });
 }
+
+// Test function for mobile notifications (can be called from console)
+window.testNotification = async function() {
+    try {
+        if (Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.log('Permission denied');
+                return;
+            }
+        }
+        
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification('Test Notification', {
+                body: 'This is a test notification to check if mobile notifications work',
+                icon: './icon-192x192.png',
+                badge: './badge.png',
+                requireInteraction: true,
+                vibrate: [200, 100, 200],
+                tag: 'test-notification'
+            });
+            console.log('Test notification sent via service worker');
+        } else {
+            new Notification('Test Notification', {
+                body: 'This is a test notification (fallback)',
+                icon: './icon-192x192.png'
+            });
+            console.log('Test notification sent via Notification API');
+        }
+    } catch (error) {
+        console.error('Error sending test notification:', error);
+    }
+};
 
 // Initialize the app when the DOM is fully loaded
 if (document.readyState === 'loading') {
