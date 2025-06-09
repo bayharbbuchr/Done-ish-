@@ -641,78 +641,93 @@ window.testImmediateNotification = async function() {
     }
 };
 
-// Complete debugging function
+// Complete debugging function - shows results in UI for iPhone users
 window.debugNotifications = function() {
-    console.log('=== PWA NOTIFICATION DEBUGGING ===');
+    let results = [];
     
     // Check basic support
-    console.log('1. Notification support:', 'Notification' in window);
-    console.log('2. Service Worker support:', 'serviceWorker' in navigator);
-    console.log('3. Current permission:', Notification.permission);
+    results.push('📱 DEVICE INFO:');
+    results.push(`iOS: ${/iPad|iPhone|iPod/.test(navigator.userAgent) ? 'YES' : 'NO'}`);
+    results.push(`Android: ${/Android/.test(navigator.userAgent) ? 'YES' : 'NO'}`);
+    results.push(`PWA Mode: ${window.matchMedia('(display-mode: standalone)').matches ? 'YES' : 'NO'}`);
     
-    // Check PWA specific
-    console.log('4. Is PWA installed:', window.matchMedia('(display-mode: standalone)').matches);
-    console.log('5. Display mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser');
-    console.log('6. Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
-    console.log('7. Is Android:', /Android/.test(navigator.userAgent));
+    results.push('\n🔔 NOTIFICATION SUPPORT:');
+    results.push(`Notifications: ${'Notification' in window ? 'YES' : 'NO'}`);
+    results.push(`Permission: ${Notification.permission}`);
+    results.push(`Service Worker: ${'serviceWorker' in navigator ? 'YES' : 'NO'}`);
     
-    // Check environment
-    console.log('8. User Agent:', navigator.userAgent);
-    console.log('9. Is HTTPS:', location.protocol === 'https:');
-    console.log('10. Current URL:', location.href);
+    results.push('\n🌐 ENVIRONMENT:');
+    results.push(`HTTPS: ${location.protocol === 'https:' ? 'YES' : 'NO'}`);
+    results.push(`URL: ${location.hostname}`);
     
-    // Check service worker status
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(registration => {
-            console.log('11. Service Worker ready:', !!registration);
-            console.log('12. SW scope:', registration.scope);
-            console.log('13. SW state:', registration.active ? registration.active.state : 'none');
-        });
-    }
-    
-    // Check tasks
-    console.log('14. Current tasks:', tasks.length);
-    const tasksWithReminders = tasks.filter(t => t.reminderTime && !t.completed);
-    console.log('15. Tasks with reminders:', tasksWithReminders.length);
-    
-    // Check timeouts
-    console.log('16. Active timeouts:', window.notificationTimeouts ? Object.keys(window.notificationTimeouts).length : 0);
-    
-    // Test PWA notification
-    if (Notification.permission === 'granted') {
-        console.log('Testing PWA notification...');
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification('PWA Test', {
-                    body: 'This is a PWA notification test!',
-                    icon: './icon-192x192.png',
-                    badge: './badge.png',
-                    requireInteraction: true,
-                    tag: 'pwa-test'
-                }).then(() => {
-                    console.log('✅ PWA notification sent via Service Worker');
-                }).catch(error => {
-                    console.log('❌ PWA notification failed:', error);
-                });
-            });
+    // iPhone-specific message
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        results.push('\n🚨 IPHONE LIMITATION:');
+        results.push('iOS PWAs have VERY LIMITED notification support.');
+        results.push('Most notifications DON\'T WORK on iPhone PWAs.');
+        results.push('This is an Apple restriction, not a bug.');
+        
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            results.push('You\'re in PWA mode - notifications likely won\'t work.');
         } else {
-            // Fallback
-            try {
-                new Notification('Fallback Test', {
-                    body: 'Basic notification test',
-                    icon: './icon-192x192.png'
-                });
-                console.log('✅ Fallback notification sent');
-            } catch (error) {
-                console.log('❌ Fallback notification failed:', error);
-            }
+            results.push('Try opening in Safari browser instead of PWA.');
         }
-    } else {
-        console.log('⚠️ Permission not granted - cannot test');
     }
     
-    console.log('=== END PWA DEBUGGING ===');
-    showToast('Check console for PWA debug results');
+    // Create a popup-style display
+    const debugDiv = document.createElement('div');
+    debugDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #000;
+        color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 10000;
+        font-family: monospace;
+        font-size: 12px;
+        line-height: 1.4;
+        white-space: pre-line;
+        box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    `;
+    
+    debugDiv.innerHTML = `
+        <div style="text-align: center; margin-bottom: 15px;">
+            <strong>🔍 NOTIFICATION DEBUG RESULTS</strong>
+        </div>
+        ${results.join('\n')}
+        <div style="text-align: center; margin-top: 15px;">
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background: #ff6b6b; color: white; border: none; padding: 10px 20px; border-radius: 5px;">
+                Close
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(debugDiv);
+    
+    // Also log to console for desktop users
+    console.log('=== PWA DEBUG RESULTS ===');
+    results.forEach(result => console.log(result));
+    
+    // Try a simple test for iPhone
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent) && Notification.permission === 'granted') {
+        setTimeout(() => {
+            try {
+                new Notification('iPhone Test', {
+                    body: 'Testing if iPhone notifications work at all...'
+                });
+                showToast('iPhone notification attempted');
+            } catch (error) {
+                showToast('iPhone notification failed: ' + error.message);
+            }
+        }, 1000);
+    }
 };
 
 // Initialize the app when the DOM is fully loaded
