@@ -613,57 +613,106 @@ window.testImmediateNotification = async function() {
             }
         }
         
-        // Direct notification without service worker
-        new Notification('Simple Test', {
-            body: 'This is a direct notification test',
-            icon: './icon-192x192.png'
-        });
-        console.log('Direct notification sent');
-        showToast('Direct notification sent');
+        // Try PWA-style notification first (service worker)
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification('PWA Test Notification', {
+                body: 'This notification was sent via Service Worker for PWA compatibility',
+                icon: './icon-192x192.png',
+                badge: './badge.png',
+                requireInteraction: true,
+                vibrate: [200, 100, 200],
+                tag: 'immediate-test'
+            });
+            console.log('PWA notification sent via Service Worker');
+            showToast('PWA notification sent!');
+        } else {
+            // Fallback - direct notification
+            new Notification('Fallback Test', {
+                body: 'This is a fallback notification test',
+                icon: './icon-192x192.png'
+            });
+            console.log('Fallback notification sent');
+            showToast('Fallback notification sent');
+        }
     } catch (error) {
-        console.error('Error with direct notification:', error);
+        console.error('Error with notification:', error);
         showToast('Error: ' + error.message);
     }
 };
 
 // Complete debugging function
 window.debugNotifications = function() {
-    console.log('=== NOTIFICATION DEBUGGING ===');
+    console.log('=== PWA NOTIFICATION DEBUGGING ===');
     
     // Check basic support
     console.log('1. Notification support:', 'Notification' in window);
     console.log('2. Service Worker support:', 'serviceWorker' in navigator);
     console.log('3. Current permission:', Notification.permission);
     
+    // Check PWA specific
+    console.log('4. Is PWA installed:', window.matchMedia('(display-mode: standalone)').matches);
+    console.log('5. Display mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser');
+    console.log('6. Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
+    console.log('7. Is Android:', /Android/.test(navigator.userAgent));
+    
     // Check environment
-    console.log('4. User Agent:', navigator.userAgent);
-    console.log('5. Is HTTPS:', location.protocol === 'https:');
-    console.log('6. Is localhost:', location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    console.log('8. User Agent:', navigator.userAgent);
+    console.log('9. Is HTTPS:', location.protocol === 'https:');
+    console.log('10. Current URL:', location.href);
+    
+    // Check service worker status
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(registration => {
+            console.log('11. Service Worker ready:', !!registration);
+            console.log('12. SW scope:', registration.scope);
+            console.log('13. SW state:', registration.active ? registration.active.state : 'none');
+        });
+    }
     
     // Check tasks
-    console.log('7. Current tasks:', tasks.length);
+    console.log('14. Current tasks:', tasks.length);
     const tasksWithReminders = tasks.filter(t => t.reminderTime && !t.completed);
-    console.log('8. Tasks with reminders:', tasksWithReminders.length);
+    console.log('15. Tasks with reminders:', tasksWithReminders.length);
     
     // Check timeouts
-    console.log('9. Active timeouts:', window.notificationTimeouts ? Object.keys(window.notificationTimeouts).length : 0);
+    console.log('16. Active timeouts:', window.notificationTimeouts ? Object.keys(window.notificationTimeouts).length : 0);
     
-    // Test basic notification immediately
+    // Test PWA notification
     if (Notification.permission === 'granted') {
-        try {
-            new Notification('Debug Test', {
-                body: 'If you see this, basic notifications work!'
+        console.log('Testing PWA notification...');
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification('PWA Test', {
+                    body: 'This is a PWA notification test!',
+                    icon: './icon-192x192.png',
+                    badge: './badge.png',
+                    requireInteraction: true,
+                    tag: 'pwa-test'
+                }).then(() => {
+                    console.log('✅ PWA notification sent via Service Worker');
+                }).catch(error => {
+                    console.log('❌ PWA notification failed:', error);
+                });
             });
-            console.log('✅ Basic notification test sent');
-        } catch (error) {
-            console.log('❌ Basic notification failed:', error);
+        } else {
+            // Fallback
+            try {
+                new Notification('Fallback Test', {
+                    body: 'Basic notification test',
+                    icon: './icon-192x192.png'
+                });
+                console.log('✅ Fallback notification sent');
+            } catch (error) {
+                console.log('❌ Fallback notification failed:', error);
+            }
         }
     } else {
         console.log('⚠️ Permission not granted - cannot test');
     }
     
-    console.log('=== END DEBUGGING ===');
-    showToast('Check console for debug results');
+    console.log('=== END PWA DEBUGGING ===');
+    showToast('Check console for PWA debug results');
 };
 
 // Initialize the app when the DOM is fully loaded
