@@ -604,12 +604,18 @@ window.testQuickNotification = async function() {
 // Super simple test - immediate notification
 window.testImmediateNotification = async function() {
     try {
+        console.log('Current permission:', Notification.permission);
+        
         if (Notification.permission !== 'granted') {
+            showToast('Requesting notification permission...');
             const permission = await Notification.requestPermission();
+            console.log('Permission result:', permission);
+            
             if (permission !== 'granted') {
-                console.log('Permission denied');
-                showToast('Permission denied');
+                showToast('❌ Permission denied - notifications won\'t work');
                 return;
+            } else {
+                showToast('✅ Permission granted! Testing notification...');
             }
         }
         
@@ -641,6 +647,38 @@ window.testImmediateNotification = async function() {
     }
 };
 
+// Request notification permission
+window.requestNotificationPermission = async function() {
+    try {
+        showToast('Requesting notification permission...');
+        
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            showToast('✅ Notifications enabled! You can now set reminders.');
+            
+            // Test a simple notification
+            setTimeout(() => {
+                new Notification('Done(ish) Notifications Enabled!', {
+                    body: 'You can now receive reminders for your tasks.',
+                    icon: './icon-192x192.png'
+                });
+            }, 1000);
+            
+        } else if (permission === 'denied') {
+            showToast('❌ Notifications blocked. Check your browser settings.');
+        } else {
+            showToast('⚠️ Permission request dismissed.');
+        }
+        
+        console.log('Permission result:', permission);
+        
+    } catch (error) {
+        console.error('Permission request error:', error);
+        showToast('Error requesting permissions: ' + error.message);
+    }
+};
+
 // Complete debugging function - shows results in UI for iPhone users
 window.debugNotifications = function() {
     let results = [];
@@ -660,19 +698,32 @@ window.debugNotifications = function() {
     results.push(`HTTPS: ${location.protocol === 'https:' ? 'YES' : 'NO'}`);
     results.push(`URL: ${location.hostname}`);
     
-    // iPhone-specific message
-    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        results.push('\n🚨 IPHONE LIMITATION:');
-        results.push('iOS PWAs have VERY LIMITED notification support.');
-        results.push('Most notifications DON\'T WORK on iPhone PWAs.');
-        results.push('This is an Apple restriction, not a bug.');
-        
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            results.push('You\'re in PWA mode - notifications likely won\'t work.');
-        } else {
-            results.push('Try opening in Safari browser instead of PWA.');
-        }
-    }
+         // Permission and iPhone-specific message
+     if (Notification.permission === 'default') {
+         results.push('\n⚠️ PERMISSION NEEDED:');
+         results.push('Click "Enable Notifications" button first!');
+         results.push('You must grant permission for notifications to work.');
+     }
+     
+     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+         results.push('\n📱 IPHONE NOTES:');
+         if (Notification.permission === 'default') {
+             results.push('1. First: Click "Enable Notifications" button');
+             results.push('2. Grant permission when prompted');
+             results.push('3. Then test notifications');
+         } else if (Notification.permission === 'granted') {
+             results.push('Permission granted ✅');
+             results.push('However: iPhone PWAs have limited notification support.');
+             results.push('Background notifications may not work reliably.');
+         } else {
+             results.push('Permission denied ❌');
+             results.push('Go to Settings > Safari > Notifications to enable.');
+         }
+         
+         if (window.matchMedia('(display-mode: standalone)').matches) {
+             results.push('Note: You\'re in PWA mode - some limitations apply.');
+         }
+     }
     
     // Create a popup-style display
     const debugDiv = document.createElement('div');
